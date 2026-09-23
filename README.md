@@ -71,3 +71,9 @@ Browser rendering uses a simpler background shader, caps background resolution, 
 Click Enable sound or press S to start audio; the button shows whether audio is running. S also mutes/unmutes. Clicking the field starts audio when sound is enabled. Your sound preference is saved locally.
 
 Each element has its own collection chime. Release uses descending notes, while each reaction has a pitched sequence and a soft echo. A quiet ambient chord sits underneath; reaction effects have their own level, with a compressor and a 24-voice cap to keep overlapping sounds controlled.
+
+### Discovery cards
+
+After a browser reaction finishes, a discovery card explains the product formula, atom recipe, bonding, and an everyday use. Keep exploring (or Escape) closes the card; Last discovery reopens it. Number-key previews also show a card labeled as a preview. Keyboard collection/reaction shortcuts are inactive while reading; S can still toggle sound.
+
+All eight recipes have learning content in `experience/learning.js`, with PubChem or Royal Society of Chemistry reference links. Cards distinguish elemental molecules from compounds and explain that the atom recipes are formula-building models rather than laboratory reaction equations. The local Kinect projection does not open these browser dialogs.

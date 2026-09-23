@@ -10,6 +10,8 @@ const reactionEl = document.getElementById("reaction");
 const reactionFormulaEl = document.getElementById("reactionFormula");
 const reactionNameEl = document.getElementById("reactionName");
 const reactionMessageEl = document.getElementById("reactionMessage");
+const discoveryEl=document.getElementById("discovery");
+let lastDiscovery=null;
 
 const J = { SpineBase:0, SpineMid:1, Neck:2, Head:3, ShoulderLeft:4, ElbowLeft:5, WristLeft:6, HandLeft:7, ShoulderRight:8, ElbowRight:9, WristRight:10, HandRight:11, HipLeft:12, KneeLeft:13, AnkleLeft:14, FootLeft:15, HipRight:16, KneeRight:17, AnkleRight:18, FootRight:19, SpineShoulder:20 };
 const PALETTES = ["#56e5ff", "#a66cff", "#ff5b62", "#63f0a8", "#ffc857", "#ff6ec7"];
@@ -340,8 +342,20 @@ function countAtoms(stores){const counts={};for(const store of stores)for(const 
 function matchingRecipe(stores){const counts=countAtoms(stores);return RECIPES.filter(recipe=>Object.entries(recipe.need).every(([type,amount])=>(counts[type]||0)>=amount)).sort((a,b)=>Object.values(b.need).reduce((x,y)=>x+y,0)-Object.values(a.need).reduce((x,y)=>x+y,0))[0]||null}
 function consumeAtoms(stores,need){for(const [type,amount] of Object.entries(need)){let remaining=amount;for(const store of stores){for(let i=store.length-1;i>=0&&remaining>0;i--)if(store[i].type===type){store.splice(i,1);remaining--}}}}
 
+function showDiscovery(recipe,preview=false){
+  const lesson=REACTION_LESSONS[recipe.name];
+  if(!demo||!lesson)return;
+  lastDiscovery={recipe,preview};
+  document.getElementById("last-result").hidden=false;
+  discoveryEl.style.setProperty("--discovery-color",recipe.color);
+  const fields={heading:preview?"REACTION PREVIEW":"YOU MADE A DISCOVERY",formula:lesson.formula,name:lesson.name,kind:`${lesson.kind} · ${lesson.state}`,recipe:recipe.formula,bonding:lesson.bonding,everyday:lesson.everyday};
+  for(const [key,value] of Object.entries(fields))document.getElementById(`discovery-${key}`).textContent=value;
+  document.getElementById("discovery-source").href=lesson.source;
+  if(!discoveryEl.open)discoveryEl.showModal();
+}
+
 function beginReaction(recipe,x,y,stores,now,preview=false){
-  consumeAtoms(stores,recipe.need);activeReaction={...recipe,x,y,started:now,preview,duration:preview?2600:4300,seed:Math.random()*9999};reactionCooldown=now+2500;document.body.classList.add("reacting");reactionEl.style.setProperty("--reaction-color",recipe.color);reactionFormulaEl.textContent=recipe.formula;reactionNameEl.textContent=recipe.name;reactionMessageEl.textContent=recipe.message;
+  consumeAtoms(stores,recipe.need);activeReaction={...recipe,x,y,started:now,preview,duration:preview?2600:4300,seed:Math.random()*9999};reactionCooldown=now+2500;document.body.classList.add("reacting");reactionEl.style.setProperty("--reaction-color",recipe.color);reactionFormulaEl.textContent=recipe.formula;reactionNameEl.textContent=(REACTION_LESSONS[recipe.name]?.name||recipe.name).toUpperCase();reactionMessageEl.textContent=recipe.message;
   pulses.push({x,y,r:12,life:1});reactionSound(recipe);
 }
 
@@ -359,7 +373,7 @@ function drawReactionVisual(now){
   else if(reaction.type==="network"){const nodes=[];for(let i=0;i<42;i++){const a=seeded(i+reaction.seed)*Math.PI*2,r=seeded(i*4+3)*age*210;nodes.push({x:x+Math.cos(a)*r,y:y+Math.sin(a)*r*.62})}for(let i=1;i<nodes.length;i++){const a=nodes[i],b=nodes[(i*7)%nodes.length];ctx.globalAlpha=fade*.22;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.globalAlpha=fade*.72;ctx.beginPath();ctx.arc(a.x,a.y,2.5+seeded(i)*4,0,Math.PI*2);ctx.fill()}}
   else if(reaction.type==="gas"){for(let i=0;i<44;i++){const drift=seeded(i+reaction.seed),px=x+(drift-.5)*age*260+Math.sin(age*2+i)*18,py=y-age*(32+drift*70)+seeded(i*9)*120,r=4+seeded(i*5)*19;ctx.globalAlpha=fade*(.18+drift*.34);ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.stroke()}}
   else{for(let i=0;i<54;i++){const a=i/54*Math.PI*2+Math.sin(i)*.05,r=age*(80+seeded(i+reaction.seed)*190);ctx.globalAlpha=fade*(.16+seeded(i)*.42);ctx.lineWidth=1+seeded(i*2)*4;ctx.beginPath();ctx.moveTo(x+Math.cos(a)*18,y+Math.sin(a)*18);ctx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);ctx.stroke()}}
-  ctx.restore();if(now-reaction.started>reaction.duration){activeReaction=null;document.body.classList.remove("reacting")}
+  ctx.restore();if(now-reaction.started>reaction.duration){activeReaction=null;document.body.classList.remove("reacting");showDiscovery(reaction,reaction.preview)}
 }
 
 function updateMotion(bodies,dt){
@@ -424,7 +438,7 @@ function updateDemoControls(){
   const inventoryEl=document.getElementById("demo-inventory");
   if(inventoryEl.textContent!==label)inventoryEl.textContent=label;
   const recipe=matchingRecipe([atoms]),button=document.getElementById("demo-combine");
-  const buttonLabel=recipe?`Combine: ${recipe.name.toLowerCase()}`:"Combine atoms";
+  const buttonLabel=recipe?`Combine: ${(REACTION_LESSONS[recipe.name]?.name||recipe.name).toLowerCase()}`:"Combine atoms";
   if(button.textContent!==buttonLabel)button.textContent=buttonLabel;
   button.disabled=!recipe||!!activeReaction;
   document.getElementById("demo-release").disabled=!atoms.length;
@@ -515,6 +529,7 @@ function connect(){
 }
 
 addEventListener("resize",resize);
+document.getElementById("last-result").addEventListener("click",()=>{if(lastDiscovery)showDiscovery(lastDiscovery.recipe,lastDiscovery.preview)});
 addEventListener("pointerdown",event=>{if(!event.target.closest?.("#demo-sound"))unlockAudio()},{capture:true});
 document.getElementById("demo-sound").addEventListener("click",toggleSound);
 function moveDemoHand(event){
@@ -534,6 +549,7 @@ document.getElementById("demo-combine").addEventListener("click",combineDemoHand
 document.getElementById("demo-release").addEventListener("click",()=>{releaseDemoPointer();demoRelease=true});
 addEventListener("keydown",event=>{
   const key=event.key.toLowerCase(),step=event.shiftKey ? .02 : .006;
+  if(discoveryEl.open&&key!=="s")return;
   if(key!=="s"&&!event.ctrlKey&&!event.metaKey&&!event.altKey)unlockAudio();
   if(key==="c")setCalibration(!calibrationActive);
   if(demo&&!event.repeat){
