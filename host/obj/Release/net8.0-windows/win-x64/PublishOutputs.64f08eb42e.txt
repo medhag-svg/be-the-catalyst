@@ -1,0 +1,13 @@
+C:\Users\Charanraj\OneDrive\Documents\New project\living-portal-installation\host\bin\Release\net8.0-windows\win-x64\publish\LivingPortalHost.exe
+C:\Users\Charanraj\OneDrive\Documents\New project\living-portal-installation\host\bin\Release\net8.0-windows\win-x64\publish\runtimes\win-x64\native\WebView2Loader.dll
+C:\Users\Charanraj\OneDrive\Documents\New project\living-portal-installation\host\bin\Release\net8.0-windows\win-x64\publish\LivingPortalHost.dll
+C:\Users\Charanraj\OneDrive\Documents\New project\living-portal-installation\host\bin\Release\net8.0-windows\win-x64\publish\LivingPortalHost.deps.json
+C:\Users\Charanraj\OneDrive\Documents\New project\living-portal-installation\host\bin\Release\net8.0-windows\win-x64\publish\LivingPortalHost.runtimeconfig.json
+C:\Users\Charanraj\OneDrive\Documents\New project\living-portal-installation\host\bin\Release\net8.0-windows\win-x64\publish\LivingPortalHost.pdb
+C:\Users\Charanraj\OneDrive\Documents\New project\living-portal-installation\host\bin\Release\net8.0-windows\win-x64\publish\WebView2Loader.dll
+C:\Users\Charanraj\OneDrive\Documents\New project\living-portal-installation\host\bin\Release\net8.0-windows\win-x64\publish\Microsoft.Web.WebView2.Core.dll
+C:\Users\Charanraj\OneDrive\Documents\New project\living-portal-installation\host\bin\Release\net8.0-windows\win-x64\publish\Microsoft.Web.WebView2.WinForms.dll
+C:\Users\Charanraj\OneDrive\Documents\New project\living-portal-installation\host\bin\Release\net8.0-windows\win-x64\publish\Microsoft.Web.WebView2.Wpf.dll
+C:\Users\Charanraj\OneDrive\Documents\New project\living-portal-installation\host\bin\Release\net8.0-windows\win-x64\publish\Microsoft.Web.WebView2.Core.xml
+C:\Users\Charanraj\OneDrive\Documents\New project\living-portal-installation\host\bin\Release\net8.0-windows\win-x64\publish\Microsoft.Web.WebView2.WinForms.xml
+C:\Users\Charanraj\OneDrive\Documents\New project\living-portal-installation\host\bin\Release\net8.0-windows\win-x64\publish\Microsoft.Web.WebView2.Wpf.xml

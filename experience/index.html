@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Molecular Commons — Interactive Reaction Field</title>
+  <meta name="description" content="A Kinect-powered molecular reaction field for the National Institute of Design.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="world" aria-label="Interactive living portal projection"></canvas>
+  <canvas id="effects" aria-hidden="true"></canvas>
+
+  <main>
+    <header>
+      <div class="mark"><span>NID</span></div>
+      <div class="identity">NATIONAL INSTITUTE<br>OF DESIGN</div>
+      <div class="project">MOLECULAR COMMONS · INTERACTIVE REACTION FIELD</div>
+    </header>
+
+    <section id="attract">
+      <p>MATTER IS WAITING</p>
+      <h1>BECOME THE<br>CATALYST</h1>
+      <div class="invitation"><i></i><span>ENTER THE REACTION FIELD</span><i></i></div>
+    </section>
+
+    <section id="presence" aria-hidden="true">
+      <div class="whisper" id="whisper">OPEN HAND ATTRACTS · CLOSE FIST TO COLLECT · LOWER TO RELEASE</div>
+      <div class="stillness"><span>STILLNESS REVEALS THE BONDS</span><i id="stillnessBar"></i></div>
+    </section>
+
+    <section id="fusion" aria-hidden="true">
+      <p>TWO WORLDS ARE LISTENING</p>
+      <h2>COME<br>CLOSER</h2>
+    </section>
+
+    <section id="reaction" aria-live="polite">
+      <p id="reactionFormula">2H + O</p>
+      <h2 id="reactionName">WATER</h2>
+      <small id="reactionMessage">A NEW BEHAVIOUR EMERGES</small>
+    </section>
+
+    <section id="calibration" aria-hidden="true">
+      <div class="cal-frame"><i></i><i></i><i></i><i></i></div>
+      <div class="cal-cross horizontal"></div><div class="cal-cross vertical"></div>
+      <div class="cal-copy"><b>PORTAL CALIBRATION</b><span>ARROWS POSITION · [ ] SCALE · M MIRROR · 0 RESET · C SAVE &amp; CLOSE</span><small id="calValues"></small></div>
+    </section>
+  </main>
+
+  <aside id="operator">
+    <i></i><span id="sensor">WAITING FOR KINECT</span><b id="fps">0 FPS</b>
+    <small>H HUD · C CALIBRATE · D DEMO · 1–8 REACTIONS · M MIRROR · S SOUND · R RESET</small>
+  </aside>
+  <script src="app.js"></script>
+</body>
+</html>
