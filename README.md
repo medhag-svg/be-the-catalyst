@@ -67,3 +67,8 @@ Use `?demo=1` to explicitly enable mouse mode locally, or `?demo=0` to disable i
 Mouse mode uses a single collection cursor and explicit Combine action. Kinect keeps its two-hand collection, proximity, and release gestures and requires the local Windows setup.
 
 Browser rendering uses a simpler background shader, caps background resolution, skips body-texture uploads, and reduces atom/trail glow work. The foreground stays at its normal resolution.
+### Sound
+
+Click Enable sound or press S to start audio; the button shows whether audio is running. S also mutes/unmutes. Clicking the field starts audio when sound is enabled. Your sound preference is saved locally.
+
+Each element has its own collection chime. Release uses descending notes, while each reaction has a pitched sequence and a soft echo. A quiet ambient chord sits underneath; reaction effects have their own level, with a compressor and a 24-voice cap to keep overlapping sounds controlled.
