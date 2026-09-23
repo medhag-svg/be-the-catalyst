@@ -14,7 +14,7 @@
 2. Connect Kinect power and USB 3.0.
 3. Double-click `RUN_LIVING_PORTAL.bat`.
 4. Wait approximately five seconds. The projection opens full-screen automatically.
-5. Stand in the interaction zone. Press `H` temporarily to confirm `KINECT LIVE` and the body count.
+5. Stand in the interaction zone. Move your hands and confirm the projected hand markers follow your movement.
 
 ## First installation calibration
 

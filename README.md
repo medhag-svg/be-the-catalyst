@@ -14,7 +14,6 @@ Always use `STOP_LIVING_PORTAL.bat` before switching off the computer; it closes
 
 ## Operator keys
 
-- `H`: show or hide the technical HUD
 - `C`: open or close portal calibration
 - `D`: toggle mouse-driven demo mode
 - `1`–`8`: preview the eight reaction finales

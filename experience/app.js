@@ -3,8 +3,6 @@
 const world = document.getElementById("world");
 const effects = document.getElementById("effects");
 const ctx = effects.getContext("2d");
-const sensorEl = document.getElementById("sensor");
-const fpsEl = document.getElementById("fps");
 const stillnessBar = document.getElementById("stillnessBar");
 const calValues = document.getElementById("calValues");
 const whisperEl = document.getElementById("whisper");
@@ -41,7 +39,7 @@ let demo=query.has("demo")?query.get("demo")==="1":!localInstallation;
 const demoHands={left:{x:.35,y:.45,tx:.35,ty:.45},right:{x:.65,y:.45,tx:.65,ty:.45}};
 let selectedHand="left",demoHolding=false,demoCaptured=false,demoRelease=false;
 let stillness=0, motionEnergy=0, fusion=0, fused=false, lastBodyCount=0;
-let startedAt=performance.now(), lastTime=startedAt, frames=0, fpsAt=startedAt;
+let startedAt=performance.now(), lastTime=startedAt;
 let calibrationActive=false,audio=null,audioFused=false,lastAudioCount=0;
 let lastUploadedMask=null;
 let molecules=[],inventories=new Map(),activeReaction=null,reactionCooldown=0,failedMixUntil=0;
@@ -312,7 +310,7 @@ function releaseHand(target){
 }
 
 function drawMoleculeField(bodies,dt,now){
-  ensureMolecules();const hands=handTargets(bodies),speed=activeReaction ? .35 : 1;
+  ensureMolecules();const hands=handTargets(bodies),speed=activeReaction&&!activeReaction.preview ? .35 : 1;
   for(const hand of hands){
     let candidate=null,distance=Infinity;for(const molecule of molecules){const d=Math.hypot(molecule.x-hand.p.x,molecule.y-hand.p.y);if(d<distance){distance=d;candidate=molecule}}
     hand.capture=distance<92?candidate:null;
@@ -342,8 +340,8 @@ function countAtoms(stores){const counts={};for(const store of stores)for(const 
 function matchingRecipe(stores){const counts=countAtoms(stores);return RECIPES.filter(recipe=>Object.entries(recipe.need).every(([type,amount])=>(counts[type]||0)>=amount)).sort((a,b)=>Object.values(b.need).reduce((x,y)=>x+y,0)-Object.values(a.need).reduce((x,y)=>x+y,0))[0]||null}
 function consumeAtoms(stores,need){for(const [type,amount] of Object.entries(need)){let remaining=amount;for(const store of stores){for(let i=store.length-1;i>=0&&remaining>0;i--)if(store[i].type===type){store.splice(i,1);remaining--}}}}
 
-function beginReaction(recipe,x,y,stores,now){
-  consumeAtoms(stores,recipe.need);activeReaction={...recipe,x,y,started:now,duration:4300,seed:Math.random()*9999};reactionCooldown=now+2500;document.body.classList.add("reacting");reactionEl.style.setProperty("--reaction-color",recipe.color);reactionFormulaEl.textContent=recipe.formula;reactionNameEl.textContent=recipe.name;reactionMessageEl.textContent=recipe.message;
+function beginReaction(recipe,x,y,stores,now,preview=false){
+  consumeAtoms(stores,recipe.need);activeReaction={...recipe,x,y,started:now,preview,duration:preview?2600:4300,seed:Math.random()*9999};reactionCooldown=now+2500;document.body.classList.add("reacting");reactionEl.style.setProperty("--reaction-color",recipe.color);reactionFormulaEl.textContent=recipe.formula;reactionNameEl.textContent=recipe.name;reactionMessageEl.textContent=recipe.message;
   pulses.push({x,y,r:12,life:1});reactionSound(recipe);
 }
 
@@ -355,7 +353,7 @@ function checkMolecularReactions(bodies,now){
 
 function seeded(seed){return Math.abs(Math.sin(seed*12.9898)*43758.5453)%1}
 function drawReactionVisual(now){
-  if(!activeReaction)return;const reaction=activeReaction,age=(now-reaction.started)/1000,progress=clamp(age/(reaction.duration/1000)),fade=Math.sin(progress*Math.PI),x=reaction.x,y=reaction.y;ctx.save();ctx.globalCompositeOperation="lighter";ctx.strokeStyle=reaction.color;ctx.fillStyle=reaction.color;ctx.shadowColor=reaction.color;ctx.shadowBlur=26;
+  if(!activeReaction)return;const reaction=activeReaction,elapsed=(now-reaction.started)/1000,age=elapsed*(reaction.preview?1.65:1),progress=clamp(elapsed/(reaction.duration/1000)),fade=reaction.preview?clamp(elapsed/.12)*clamp((reaction.duration/1000-elapsed)/.5):Math.sin(progress*Math.PI),x=reaction.x,y=reaction.y;ctx.save();ctx.globalCompositeOperation="lighter";ctx.strokeStyle=reaction.color;ctx.fillStyle=reaction.color;ctx.shadowColor=reaction.color;ctx.shadowBlur=demo?6:26;
   if(reaction.type==="water"){for(let i=0;i<9;i++){ctx.globalAlpha=fade*(.38-i*.025);ctx.lineWidth=1.3+i*.35;ctx.beginPath();const base=age*105-i*28;for(let a=0;a<=80;a++){const angle=a/80*Math.PI*2,r=base+Math.sin(a*.65+age*4+i)*12;a?ctx.lineTo(x+Math.cos(angle)*r,y+Math.sin(angle)*r*.58):ctx.moveTo(x+Math.cos(angle)*r,y+Math.sin(angle)*r*.58)}ctx.stroke()}}
   else if(reaction.type==="crystal"){for(let i=0;i<34;i++){const angle=i/34*Math.PI*2,r=28+seeded(i+reaction.seed)*age*190,px=x+Math.cos(angle)*r,py=y+Math.sin(angle)*r*.7,size=9+seeded(i*3)*18*fade;ctx.globalAlpha=fade*.48;ctx.beginPath();for(let k=0;k<=6;k++){const a=k/6*Math.PI*2;k?ctx.lineTo(px+Math.cos(a)*size,py+Math.sin(a)*size):ctx.moveTo(px+Math.cos(a)*size,py+Math.sin(a)*size)}ctx.stroke()}}
   else if(reaction.type==="network"){const nodes=[];for(let i=0;i<42;i++){const a=seeded(i+reaction.seed)*Math.PI*2,r=seeded(i*4+3)*age*210;nodes.push({x:x+Math.cos(a)*r,y:y+Math.sin(a)*r*.62})}for(let i=1;i<nodes.length;i++){const a=nodes[i],b=nodes[(i*7)%nodes.length];ctx.globalAlpha=fade*.22;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.globalAlpha=fade*.72;ctx.beginPath();ctx.arc(a.x,a.y,2.5+seeded(i)*4,0,Math.PI*2);ctx.fill()}}
@@ -495,7 +493,7 @@ function syncPresence(bodies){
 }
 
 function render(now){
-  const dt=Math.min(.05,(now-lastTime)/1000);lastTime=now;frames++;
+  const dt=Math.min(.05,(now-lastTime)/1000);lastTime=now;
   const live=now-frame.received<1200;
   let active=demo?demoFrame(dt):(live?frame:{tracked:false,bodies:[],mask:null,mw:384,mh:318});
   const bodies=active.tracked?active.bodies:[];
@@ -508,8 +506,6 @@ function render(now){
   const targets=handTargets(bodies),hasAtoms=targets.some(target=>target.store.length),isGrabbing=targets.some(target=>target.state===3);
   whisperEl.textContent=activeReaction?"REACTION IN PROGRESS":now<failedMixUntil?"UNSTABLE MIXTURE · LOWER A HAND TO RELEASE":fusion>.18?"JOIN HANDS · COMBINE YOUR ELEMENTS":isGrabbing?"KEEP YOUR FIST CLOSED · HOLD TO COLLECT ONE ELEMENT":hasAtoms?"BRING HANDS TOGETHER · OR LOWER A HAND TO RELEASE":stillness>.58?"STILLNESS REVEALS THE BONDS":"OPEN HAND ATTRACTS · CLOSE FIST TO COLLECT";
   if(demo){updateDemoControls();if(!activeReaction)whisperEl.textContent=hasAtoms?"CLICK MORE ATOMS · COMBINE WHEN YOUR RECIPE IS READY":"MOVE TO EXPLORE · CLICK AN ATOM TO COLLECT";}
-  document.body.classList.toggle("kinect",live&&!demo);sensorEl.textContent=demo?"DEMO BODY":live?(bodies.length?`KINECT LIVE · ${bodies.length} ${bodies.length===1?"BODY":"BODIES"}`:"KINECT READY"):"KINECT STREAM LOST";
-  if(now-fpsAt>1000){fpsEl.textContent=`${frames} FPS`;frames=0;fpsAt=now}
   requestAnimationFrame(render);
 }
 
@@ -539,7 +535,6 @@ document.getElementById("demo-release").addEventListener("click",()=>{releaseDem
 addEventListener("keydown",event=>{
   const key=event.key.toLowerCase(),step=event.shiftKey ? .02 : .006;
   if(key!=="s"&&!event.ctrlKey&&!event.metaKey&&!event.altKey)unlockAudio();
-  if(key==="h")document.body.classList.toggle("hud");
   if(key==="c")setCalibration(!calibrationActive);
   if(demo&&!event.repeat){
 
@@ -551,7 +546,7 @@ addEventListener("keydown",event=>{
   if(key==="m"){mirror=!mirror;saveConfig()}
   if(key==="s"&&!event.repeat)toggleSound();
   if(key==="r"){memory=[];pulses=[];trails.clear()}
-  if("12345678".includes(key)){const recipe=RECIPES[Number(key)-1];beginReaction(recipe,width/2,height/2,[[]],performance.now())}
+  if(!event.repeat&&/^[1-8]$/.test(key)){const recipe=RECIPES[Number(key)-1];beginReaction(recipe,width/2,height/2,[[]],performance.now(),true)}
   if(calibrationActive){
     if(key==="arrowleft")config.offsetX-=step;
     if(key==="arrowright")config.offsetX+=step;
