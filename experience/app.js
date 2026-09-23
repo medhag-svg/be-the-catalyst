@@ -12,6 +12,20 @@ const reactionNameEl = document.getElementById("reactionName");
 const reactionMessageEl = document.getElementById("reactionMessage");
 const discoveryEl=document.getElementById("discovery");
 let lastDiscovery=null;
+let discoveryBackdropPressed=false;
+function isDiscoveryBackdrop(event){
+  const bounds=discoveryEl.getBoundingClientRect();
+  return event.target===discoveryEl&&(event.clientX<bounds.left||event.clientX>bounds.right||event.clientY<bounds.top||event.clientY>bounds.bottom);
+}
+discoveryEl.addEventListener("pointerdown",event=>{
+  discoveryBackdropPressed=event.isPrimary&&event.button===0&&isDiscoveryBackdrop(event);
+});
+discoveryEl.addEventListener("click",event=>{
+  if(discoveryBackdropPressed&&isDiscoveryBackdrop(event))discoveryEl.close();
+  discoveryBackdropPressed=false;
+});
+discoveryEl.addEventListener("pointercancel",()=>{discoveryBackdropPressed=false});
+discoveryEl.addEventListener("close",()=>{discoveryBackdropPressed=false});
 
 const J = { SpineBase:0, SpineMid:1, Neck:2, Head:3, ShoulderLeft:4, ElbowLeft:5, WristLeft:6, HandLeft:7, ShoulderRight:8, ElbowRight:9, WristRight:10, HandRight:11, HipLeft:12, KneeLeft:13, AnkleLeft:14, FootLeft:15, HipRight:16, KneeRight:17, AnkleRight:18, FootRight:19, SpineShoulder:20 };
 const PALETTES = ["#56e5ff", "#a66cff", "#ff5b62", "#63f0a8", "#ffc857", "#ff6ec7"];
