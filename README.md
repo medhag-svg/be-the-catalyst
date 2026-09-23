@@ -58,11 +58,12 @@ For the physical setup and recovery procedure, read `EXHIBITION_SETUP.md`. A con
 Hosted pages automatically use mouse mode; the local installation keeps Kinect mode.
 Use `?demo=1` to explicitly enable mouse mode locally, or `?demo=0` to disable it.
 
-- Move the pointer to guide the selected hand; the other hand stays parked.
-- Hold the primary mouse button near an atom for just over half a second to collect it. Release the button before collecting another.
-- Press Tab or use the Switch button to control the other hand.
-- Bring the hands together, or press Space / Join Hands, to test the collected atoms against the same recipes used by Kinect.
-- Press X / Release Atoms to empty the selected hand. Lowering a hand to the bottom of the field also releases its atoms after a short hold.
-- Try collecting two H atoms, then joining hands. Number keys 1–8 remain effect previews.
+- Move the pointer: the circle follows immediately without clicking.
+- Click an atom to collect it. Your collection appears above the buttons (up to eight atoms).
+- The Combine button names a matching recipe and becomes available when you have the ingredients. Click it to react; Space is an optional shortcut when the canvas has focus.
+- Click Release Atoms (or press X) to empty the collection.
+- Try clicking two H atoms, then Combine. Number keys 1â€“8 remain effect previews.
 
-The mouse mode represents two hands, without a simulated body silhouette. Kinect body tracking still requires the local Windows setup.
+Mouse mode uses a single collection cursor and explicit Combine action. Kinect keeps its two-hand collection, proximity, and release gestures and requires the local Windows setup.
+
+Browser rendering uses a simpler background shader, caps background resolution, skips body-texture uploads, and reduces atom/trail glow work. The foreground stays at its normal resolution.
