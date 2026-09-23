@@ -76,4 +76,4 @@ Each element has its own collection chime. Release uses descending notes, while 
 
 After a browser reaction finishes, a discovery card explains the product formula, atom recipe, bonding, and an everyday use. Keep exploring (or Escape) closes the card; Last discovery reopens it. Number-key previews also show a card labeled as a preview. Keyboard collection/reaction shortcuts are inactive while reading; S can still toggle sound.
 
-All eight recipes have learning content in `experience/learning.js`, with PubChem or Royal Society of Chemistry reference links. Cards distinguish elemental molecules from compounds and explain that the atom recipes are formula-building models rather than laboratory reaction equations. The local Kinect projection does not open these browser dialogs.
+All eight recipes have learning content in `experience/learning.js`, with Wikipedia links for further reading. Cards distinguish elemental molecules from compounds and explain that the atom recipes are formula-building models rather than laboratory reaction equations. The local Kinect projection does not open these browser dialogs.
