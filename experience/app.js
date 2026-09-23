@@ -36,7 +36,10 @@ let config={offsetX:Number(savedConfig.offsetX)||0,offsetY:Number(savedConfig.of
 let width=innerWidth, height=innerHeight, dpr=1, mirror=config.mirror;
 let frame={tracked:false,bodies:[],mask:null,mw:384,mh:318,received:0},textureW=384,textureH=318;
 let previousBodies=new Map(), lastVisibleBodies=new Map(), trails=new Map(), memory=[], pulses=[];
-let demo=query.get("demo")==="1", demoPointer={x:.5,y:.5,active:true};
+const localInstallation=["localhost","127.0.0.1","[::1]"].includes(location.hostname);
+let demo=query.has("demo")?query.get("demo")==="1":!localInstallation;
+const demoHands={left:{x:.35,y:.45,tx:.35,ty:.45},right:{x:.65,y:.45,tx:.65,ty:.45}};
+let selectedHand="left",demoHolding=false,demoCaptured=false,demoRelease=false;
 let stillness=0, motionEnergy=0, fusion=0, fused=false, lastBodyCount=0;
 let startedAt=performance.now(), lastTime=startedAt, frames=0, fpsAt=startedAt;
 let calibrationActive=false,audio=null,audioFused=false,lastAudioCount=0;
@@ -202,6 +205,7 @@ function updateTexture(mask,mw,mh){
 
 function point(body,index){
   const p=body?.joints?.[index];if(!p)return null;
+  if(body.id==="demo")return{x:p.x*width,y:p.y*height,z:p.z,state:p.state};
   const sourceX=mirror?1-p.x:p.x,aspect=(frame.mw/frame.mh)/(width/height),x=((sourceX-.5)*aspect*config.scale+.5+config.offsetX)*width,y=((p.y-.5)*config.scale+.5+config.offsetY)*height;
   return{x,y,z:p.z,state:p.state};
 }
@@ -262,7 +266,7 @@ function drawMoleculeField(bodies,dt,now){
   for(const molecule of molecules){
     molecule.vx+=Math.sin(now*.00023+molecule.seed)*dt*5;molecule.vy+=Math.cos(now*.00019+molecule.seed)*dt*4;
     let nearest=null,best=Infinity;for(const hand of hands){const d=Math.hypot(molecule.x-hand.p.x,molecule.y-hand.p.y);if(d<best){best=d;nearest=hand}}
-    if(nearest&&best<205){const dx=nearest.p.x-molecule.x,dy=nearest.p.y-molecule.y,d=best||1,isCandidate=nearest.capture===molecule&&nearest.state===3,targetRadius=isCandidate?18:82,force=clamp((d-targetRadius)/115,-.55,1)*(isCandidate?70:38);molecule.vx+=dx/d*force*dt;molecule.vy+=dy/d*force*dt;ctx.save();ctx.globalCompositeOperation="lighter";ctx.globalAlpha=(1-d/205)*(isCandidate?.38:.16);ctx.strokeStyle=ELEMENTS[molecule.type].color;ctx.beginPath();ctx.moveTo(molecule.x,molecule.y);ctx.lineTo(nearest.p.x,nearest.p.y);ctx.stroke();ctx.restore();if(isCandidate&&now-nearest.gesture.since>520&&nearest.store.length<8){nearest.store.push({type:molecule.type,seed:molecule.seed,caught:now});tone(220+ELEMENTS[molecule.type].mass*5,.28,.012);nearest.gesture.candidate=null;nearest.gesture.since=now;resetMolecule(molecule,true);continue}}
+    if(nearest&&best<205){const dx=nearest.p.x-molecule.x,dy=nearest.p.y-molecule.y,d=best||1,isCandidate=nearest.capture===molecule&&nearest.state===3,targetRadius=isCandidate?18:82,force=clamp((d-targetRadius)/115,-.55,1)*(isCandidate?70:38);molecule.vx+=dx/d*force*dt;molecule.vy+=dy/d*force*dt;ctx.save();ctx.globalCompositeOperation="lighter";ctx.globalAlpha=(1-d/205)*(isCandidate?.38:.16);ctx.strokeStyle=ELEMENTS[molecule.type].color;ctx.beginPath();ctx.moveTo(molecule.x,molecule.y);ctx.lineTo(nearest.p.x,nearest.p.y);ctx.stroke();ctx.restore();if(isCandidate&&now-nearest.gesture.since>520&&nearest.store.length<8){nearest.store.push({type:molecule.type,seed:molecule.seed,caught:now});if(nearest.body.id==="demo"){demoCaptured=true;nearest.state=2}tone(220+ELEMENTS[molecule.type].mass*5,.28,.012);nearest.gesture.candidate=null;nearest.gesture.since=now;resetMolecule(molecule,true);continue}}
     molecule.vx*=Math.pow(.992,dt*60);molecule.vy*=Math.pow(.992,dt*60);molecule.x+=molecule.vx*dt*speed;molecule.y+=molecule.vy*dt*speed;
     if(molecule.x<-45||molecule.x>width+45||molecule.y<-45||molecule.y>height+45)resetMolecule(molecule,true);
     const pulse=1+Math.sin(now*.002+molecule.phase)*.08;moleculeCircle(molecule.x,molecule.y,molecule.type,molecule.radius*pulse,bodies.length ? .72 : .48);
@@ -316,15 +320,31 @@ function updateMotion(bodies,dt){
   document.body.classList.toggle("deep-still",stillness>.58);
 }
 
-function demoFrame(time){
-  const mw=384,mh=318,mask=new Uint8Array(mw*mh),cx=demoPointer.x*mw,cy=demoPointer.y*mh;
-  const setEllipse=(x0,y0,rx,ry,id)=>{const minX=Math.max(0,Math.floor(x0-rx)),maxX=Math.min(mw-1,Math.ceil(x0+rx)),minY=Math.max(0,Math.floor(y0-ry)),maxY=Math.min(mh-1,Math.ceil(y0+ry));for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++)if(((x-x0)/rx)**2+((y-y0)/ry)**2<=1)mask[y*mw+x]=id};
-  setEllipse(cx,cy-mh*.18,mw*.042,mh*.075,1);setEllipse(cx,cy+mh*.03,mw*.074,mh*.22,1);setEllipse(cx-mw*.068,cy,mw*.027,mh*.19,1);setEllipse(cx+mw*.068,cy,mw*.027,mh*.19,1);setEllipse(cx-mw*.035,cy+mh*.27,mw*.03,mh*.18,1);setEllipse(cx+mw*.035,cy+mh*.27,mw*.03,mh*.18,1);
-  const joints=Array.from({length:25},()=>({x:demoPointer.x,y:demoPointer.y,z:2,state:2}));
-  joints[J.Head]={x:demoPointer.x,y:demoPointer.y-.18,z:2,state:2};joints[J.HandLeft]={x:demoPointer.x-.16-Math.sin(time*.001)*.05,y:demoPointer.y-.02,z:2,state:2};joints[J.HandRight]={x:demoPointer.x+.16+Math.sin(time*.001)*.05,y:demoPointer.y-.02,z:2,state:2};joints[J.SpineMid]={x:demoPointer.x,y:demoPointer.y+.04,z:2,state:2};joints[J.SpineBase]={x:demoPointer.x,y:demoPointer.y+.17,z:2,state:2};joints[J.FootLeft]={x:demoPointer.x-.08,y:demoPointer.y+.43,z:2,state:2};joints[J.FootRight]={x:demoPointer.x+.08,y:demoPointer.y+.43,z:2,state:2};
-  return{tracked:true,bodies:[{id:"demo",index:0,joints}],mask,mw,mh,received:performance.now()};
+function demoFrame(dt){
+  const joints=Array.from({length:25},()=>({x:.5,y:.5,z:2,state:2}));
+  const follow=1-Math.exp(-28*dt);
+  for(const side of ["left","right"]){
+    const hand=demoHands[side];
+    hand.x=lerp(hand.x,hand.tx,follow);hand.y=lerp(hand.y,hand.ty,follow);
+    joints[side==="left"?J.HandLeft:J.HandRight]={x:hand.x,y:hand.y,z:2,state:2};
+  }
+  joints[J.SpineBase]={x:.5,y:.76,z:2,state:2};
+  const body={id:"demo",index:0,joints,left:2,right:2};
+  body[selectedHand]=demoRelease?4:demoHolding&&!demoCaptured?3:2;
+  demoRelease=false;
+  return{tracked:true,bodies:[body],mask:null,mw:384,mh:318,received:performance.now()};
 }
 
+function releaseDemoPointer(){demoHolding=false;demoCaptured=false}
+function switchDemoHand(){
+  releaseDemoPointer();selectedHand=selectedHand==="left"?"right":"left";
+  document.getElementById("demo-hand").textContent=`${selectedHand.toUpperCase()} HAND · SWITCH (TAB)`;
+}
+function combineDemoHands(){
+  releaseDemoPointer();
+  const other=demoHands[selectedHand==="left"?"right":"left"];
+  demoHands[selectedHand].tx=other.x;demoHands[selectedHand].ty=other.y;
+}
 function addMemory(body){
   const c=point(body,J.SpineMid);if(!c)return;
   memory.push({x:c.x,y:c.y,color:PALETTES[body.index%PALETTES.length],born:performance.now(),seed:Math.random()*9999});
@@ -351,7 +371,7 @@ function drawTrails(now){
 
 function drawHands(bodies,now){
   ctx.save();ctx.globalCompositeOperation="lighter";
-  bodies.forEach((body,i)=>{const color=PALETTES[body.index%PALETTES.length],inventory=inventoryFor(body.id);[[J.HandLeft,"left",body.left||0],[J.HandRight,"right",body.right||0]].forEach(([joint,side,state])=>{const p=point(body,joint);if(!p)return;const gesture=inventory[side+"Gesture"],store=inventory[side],closed=state===3,r=17+Math.sin(now*.004+i)*3+motionEnergy*9;ctx.strokeStyle=closed?"#f1eee7":color;ctx.globalAlpha=closed?.9:.58;ctx.lineWidth=closed?2.8:1.5;ctx.shadowColor=color;ctx.shadowBlur=26;for(let n=0;n<2;n++){ctx.beginPath();ctx.arc(p.x,p.y,r+n*11,0,Math.PI*2);ctx.stroke()}if(closed&&gesture.since){const progress=clamp((now-gesture.since)/520);ctx.strokeStyle="#fff";ctx.lineWidth=5;ctx.globalAlpha=.95;ctx.beginPath();ctx.arc(p.x,p.y,r+18,-Math.PI/2,-Math.PI/2+progress*Math.PI*2);ctx.stroke()}ctx.shadowBlur=0;ctx.globalCompositeOperation="source-over";ctx.globalAlpha=.72;ctx.fillStyle="#f1eee7";ctx.font="700 9px Segoe UI";ctx.textAlign="center";ctx.fillText(state===4?"RELEASE":closed?"HOLD":store.length?"LOWER TO RELEASE":"OPEN · SEEK",p.x,p.y+r+29);ctx.globalCompositeOperation="lighter"})});
+  bodies.forEach((body,i)=>{const color=PALETTES[body.index%PALETTES.length],inventory=inventoryFor(body.id);[[J.HandLeft,"left",body.left||0],[J.HandRight,"right",body.right||0]].forEach(([joint,side,state])=>{const p=point(body,joint);if(!p)return;const gesture=inventory[side+"Gesture"],store=inventory[side],closed=state===3,r=17+Math.sin(now*.004+i)*3+motionEnergy*9;ctx.strokeStyle=closed?"#f1eee7":color;ctx.globalAlpha=closed?.9:.58;ctx.lineWidth=closed?2.8:1.5;ctx.shadowColor=color;ctx.shadowBlur=26;for(let n=0;n<2;n++){ctx.beginPath();ctx.arc(p.x,p.y,r+n*11,0,Math.PI*2);ctx.stroke()}if(closed&&gesture.since){const progress=clamp((now-gesture.since)/520);ctx.strokeStyle="#fff";ctx.lineWidth=5;ctx.globalAlpha=.95;ctx.beginPath();ctx.arc(p.x,p.y,r+18,-Math.PI/2,-Math.PI/2+progress*Math.PI*2);ctx.stroke()}ctx.shadowBlur=0;ctx.globalCompositeOperation="source-over";ctx.globalAlpha=.72;ctx.fillStyle="#f1eee7";ctx.font="700 9px Segoe UI";ctx.textAlign="center";ctx.fillText(body.id==="demo"?`${side.toUpperCase()}${side===selectedHand?" · ACTIVE":" · PARKED"} · ${closed?"HOLD":store.length+" ATOMS"}`:state===4?"RELEASE":closed?"HOLD":store.length?"LOWER TO RELEASE":"OPEN · SEEK",p.x,p.y+r+29);ctx.globalCompositeOperation="lighter"})});
   ctx.restore();ctx.globalAlpha=1;
 }
 
@@ -392,9 +412,9 @@ function syncPresence(bodies){
 function render(now){
   const dt=Math.min(.05,(now-lastTime)/1000);lastTime=now;frames++;
   const live=now-frame.received<1200;
-  let active=demo?demoFrame(now):(live?frame:{tracked:false,bodies:[],mask:null,mw:384,mh:318});
+  let active=demo?demoFrame(dt):(live?frame:{tracked:false,bodies:[],mask:null,mw:384,mh:318});
   const bodies=active.tracked?active.bodies:[];
-  if(active.mask)updateTexture(active.mask,active.mw,active.mh);else if(!live&&!demo)updateTexture(new Uint8Array(textureW*textureH),textureW,textureH);
+  if(active.mask)updateTexture(active.mask,active.mw,active.mh);else if(demo||!live)updateTexture(new Uint8Array(textureW*textureH),textureW,textureH);
   updateMotion(bodies,dt);syncPresence(bodies);updateTrails(bodies,now);
 
   gl.useProgram(program);gl.uniform2f(uniforms.resolution,world.width,world.height);gl.uniform1f(uniforms.time,(now-startedAt)/1000);gl.uniform1f(uniforms.presence,bodies.length?1:0);gl.uniform1f(uniforms.stillness,stillness);gl.uniform1f(uniforms.motion,motionEnergy);gl.uniform1f(uniforms.fusion,fusion);gl.uniform1f(uniforms.mirror,mirror?1:0);gl.uniform2f(uniforms.offset,config.offsetX,config.offsetY);gl.uniform1f(uniforms.scale,config.scale);gl.uniform1f(uniforms.maskAspect,active.mw/active.mh);gl.drawArrays(gl.TRIANGLES,0,6);
@@ -402,6 +422,7 @@ function render(now){
   ctx.clearRect(0,0,width,height);drawMemory(now);drawMoleculeField(bodies,dt,now);drawTrails(now);drawHands(bodies,now);drawConnection(bodies,dt,now);drawPulses(dt);drawReactionVisual(now);updateAudio(bodies.length);
   const targets=handTargets(bodies),hasAtoms=targets.some(target=>target.store.length),isGrabbing=targets.some(target=>target.state===3);
   whisperEl.textContent=activeReaction?"REACTION IN PROGRESS":now<failedMixUntil?"UNSTABLE MIXTURE · LOWER A HAND TO RELEASE":fusion>.18?"JOIN HANDS · COMBINE YOUR ELEMENTS":isGrabbing?"KEEP YOUR FIST CLOSED · HOLD TO COLLECT ONE ELEMENT":hasAtoms?"BRING HANDS TOGETHER · OR LOWER A HAND TO RELEASE":stillness>.58?"STILLNESS REVEALS THE BONDS":"OPEN HAND ATTRACTS · CLOSE FIST TO COLLECT";
+  if(demo&&!activeReaction)whisperEl.textContent=now<failedMixUntil?"NO MATCH YET · COLLECT A RECIPE OR RELEASE WITH X":isGrabbing?"HOLD STILL TO COLLECT ONE ATOM":hasAtoms?"COLLECT A MATCH · JOIN HANDS TO REACT":"MOVE A HAND NEAR AN ATOM · PRESS AND HOLD TO COLLECT";
   document.body.classList.toggle("kinect",live&&!demo);sensorEl.textContent=demo?"DEMO BODY":live?(bodies.length?`KINECT LIVE · ${bodies.length} ${bodies.length===1?"BODY":"BODIES"}`:"KINECT READY"):"KINECT STREAM LOST";
   if(now-fpsAt>1000){fpsEl.textContent=`${frames} FPS`;frames=0;fpsAt=now}
   requestAnimationFrame(render);
@@ -413,12 +434,31 @@ function connect(){
 }
 
 addEventListener("resize",resize);
-addEventListener("pointermove",event=>{demoPointer.x=event.clientX/innerWidth;demoPointer.y=event.clientY/innerHeight;demoPointer.active=true});
+function moveDemoHand(event){
+  const hand=demoHands[selectedHand];hand.tx=clamp(event.clientX/innerWidth,.02,.98);hand.ty=clamp(event.clientY/innerHeight,.02,.98);
+}
+world.addEventListener("pointermove",event=>{if(demo)moveDemoHand(event)});
+world.addEventListener("pointerdown",event=>{
+  if(!demo||event.button!==0)return;
+  moveDemoHand(event);demoHolding=true;demoCaptured=false;world.setPointerCapture(event.pointerId);initAudio();
+});
+addEventListener("pointerup",releaseDemoPointer);
+addEventListener("pointercancel",releaseDemoPointer);
+addEventListener("blur",releaseDemoPointer);
+document.addEventListener("visibilitychange",()=>{if(document.hidden)releaseDemoPointer()});
+document.getElementById("demo-hand").addEventListener("click",switchDemoHand);
+document.getElementById("demo-combine").addEventListener("click",combineDemoHands);
+document.getElementById("demo-release").addEventListener("click",()=>{releaseDemoPointer();demoRelease=true});
 addEventListener("keydown",event=>{
   const key=event.key.toLowerCase(),step=event.shiftKey ? .02 : .006;
   if(key==="h")document.body.classList.toggle("hud");
   if(key==="c")setCalibration(!calibrationActive);
-  if(key==="d")demo=!demo;
+  if(demo&&!event.repeat){
+    if(key==="tab"){event.preventDefault();switchDemoHand()}
+    if(key===" "&&event.target===document.body){event.preventDefault();combineDemoHands()}
+    if(key==="x"){releaseDemoPointer();demoRelease=true}
+  }
+  if(key==="d"){demo=!demo;releaseDemoPointer();document.body.classList.toggle("demo",demo)}
   if(key==="f")document.documentElement.requestFullscreen?.();
   if(key==="m"){mirror=!mirror;saveConfig()}
   if(key==="s"){config.sound=!config.sound;if(!config.sound&&audio)audio.master.gain.setTargetAtTime(.0001,audio.ac.currentTime,.2);else initAudio();saveConfig()}
@@ -436,4 +476,4 @@ addEventListener("keydown",event=>{
   }
 });
 
-saveConfig();resize();connect();requestAnimationFrame(render);
+document.body.classList.toggle("demo",demo);saveConfig();resize();if(localInstallation)connect();requestAnimationFrame(render);

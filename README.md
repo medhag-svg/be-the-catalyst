@@ -52,3 +52,17 @@ The experience resets itself when visitors leave. Ambient sound, arrival tones, 
 The installation listens only on `127.0.0.1:8766`.
 
 For the physical setup and recovery procedure, read `EXHIBITION_SETUP.md`. A condensed control reference is available in `OPERATOR_CARD.md`.
+
+## Browser controls
+
+Hosted pages automatically use mouse mode; the local installation keeps Kinect mode.
+Use `?demo=1` to explicitly enable mouse mode locally, or `?demo=0` to disable it.
+
+- Move the pointer to guide the selected hand; the other hand stays parked.
+- Hold the primary mouse button near an atom for just over half a second to collect it. Release the button before collecting another.
+- Press Tab or use the Switch button to control the other hand.
+- Bring the hands together, or press Space / Join Hands, to test the collected atoms against the same recipes used by Kinect.
+- Press X / Release Atoms to empty the selected hand. Lowering a hand to the bottom of the field also releases its atoms after a short hold.
+- Try collecting two H atoms, then joining hands. Number keys 1–8 remain effect previews.
+
+The mouse mode represents two hands, without a simulated body silhouette. Kinect body tracking still requires the local Windows setup.
