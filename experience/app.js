@@ -82,6 +82,8 @@ uniform vec2 u_offset;
 uniform float u_scale;
 uniform float u_maskAspect;
 uniform sampler2D u_mask;
+uniform sampler2D u_stars;
+uniform float u_cosmosMotion;
 
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}
 float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
@@ -100,9 +102,15 @@ void main(){
   vec2 p=(uv-.5)*vec2(u_resolution.x/u_resolution.y,1.0);
   float t=u_time;
   if(u_demo>.5){
-    float haze=.5+.5*sin(p.x*2.0+t*.08)*cos(p.y*3.0-t*.06);
+    float skyTime=t*u_cosmosMotion;
+    float haze=.5+.5*sin(p.x*2.0+skyTime*.08)*cos(p.y*3.0-skyTime*.06);
     float vignette=1.0-smoothstep(.2,1.2,length(p));
-    gl_FragColor=vec4(vec3(.008,.013,.023)+vec3(.009,.017,.026)*haze*vignette,1.0);
+    vec3 distant=texture2D(u_stars,p*.85+vec2(skyTime*.0015,-skyTime*.0007)).rgb;
+    vec3 nearby=texture2D(u_stars,p*.43+vec2(.37+skyTime*.003,-.19+skyTime*.001)).rgb;
+    float cloud=max(0.0,1.0-abs(p.y*.8-p.x*.28+sin(p.x*2.0+skyTime*.015)*.18));
+    vec3 sky=vec3(.006,.009,.019)+mix(vec3(.008,.017,.034),vec3(.028,.012,.043),haze)*cloud*cloud;
+    sky+=(distant*.32+nearby*(.42+.06*sin(skyTime*.4)))*(.55+.45*vignette);
+    gl_FragColor=vec4(sky,1.0);
     return;
   }
   float id=maskAt(uv);
@@ -164,9 +172,36 @@ if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw new Error(gl.getProgram
 gl.useProgram(program);
 const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
 const position=gl.getAttribLocation(program,"a_position");gl.enableVertexAttribArray(position);gl.vertexAttribPointer(position,2,gl.FLOAT,false,0,0);
-const uniforms={};["demo","resolution","time","presence","stillness","motion","fusion","mirror","offset","scale","maskAspect","mask"].forEach(n=>uniforms[n]=gl.getUniformLocation(program,`u_${n}`));
+const uniforms={};["stars","cosmosMotion","demo","resolution","time","presence","stillness","motion","fusion","mirror","offset","scale","maskAspect","mask"].forEach(n=>uniforms[n]=gl.getUniformLocation(program,`u_${n}`));
 const maskTexture=gl.createTexture();gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,maskTexture);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texImage2D(gl.TEXTURE_2D,0,gl.LUMINANCE,textureW,textureH,0,gl.LUMINANCE,gl.UNSIGNED_BYTE,new Uint8Array(textureW*textureH));gl.uniform1i(uniforms.mask,0);
 
+// Bake the stars once; each frame only samples this small repeating texture.
+function createStarTexture(){
+  const tile=document.createElement("canvas");tile.width=tile.height=512;
+  const sky=tile.getContext("2d");sky.fillStyle="#000";sky.fillRect(0,0,512,512);
+  let seed=73421;
+  const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+  for(let i=0;i<115;i++){
+    const x=8+random()*496,y=8+random()*496,r=.35+random()*.85;
+    const color=i%7===0?"191,177,255":i%5===0?"255,224,183":"172,219,255";
+    if(i%9===0){
+      const glow=sky.createRadialGradient(x,y,0,x,y,r*5);
+      glow.addColorStop(0,`rgba(${color},.45)`);glow.addColorStop(1,`rgba(${color},0)`);
+      sky.fillStyle=glow;sky.fillRect(x-r*5,y-r*5,r*10,r*10);
+    }
+    sky.fillStyle=`rgba(${color},${.4+random()*.6})`;
+    sky.beginPath();sky.arc(x,y,r,0,Math.PI*2);sky.fill();
+  }
+  const texture=gl.createTexture();gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,texture);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,tile);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.generateMipmap(gl.TEXTURE_2D);gl.uniform1i(uniforms.stars,1);gl.activeTexture(gl.TEXTURE0);
+}
+createStarTexture();
+const cosmosMotionPreference=matchMedia("(prefers-reduced-motion: reduce)");
+function updateCosmosMotion(){gl.useProgram(program);gl.uniform1f(uniforms.cosmosMotion,cosmosMotionPreference.matches?0:1)}
+cosmosMotionPreference.addEventListener("change",updateCosmosMotion);updateCosmosMotion();
 function resize(){
   dpr=Math.min(devicePixelRatio||1,1.35);width=innerWidth;height=innerHeight;
   const backgroundDpr=demo?Math.min(1,Math.sqrt(1100000/(width*height))):dpr;

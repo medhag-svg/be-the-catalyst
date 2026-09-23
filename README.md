@@ -77,3 +77,5 @@ Each element has its own collection chime. Release uses descending notes, while 
 After a browser reaction finishes, a discovery card explains the product formula, atom recipe, bonding, and an everyday use. Keep exploring, Escape, or clicking outside the card closes it; Last discovery reopens it. Number-key previews also show a card labeled as a preview. Keyboard collection/reaction shortcuts are inactive while reading; S can still toggle sound.
 
 All eight recipes have learning content in `experience/learning.js`, with Wikipedia links for further reading. Cards distinguish elemental molecules from compounds and explain that the atom recipes are formula-building models rather than laboratory reaction equations. The local Kinect projection does not open these browser dialogs.
+
+The browser background includes two drifting star layers and a faint blue-violet haze. A single 512px star texture is generated at startup and sampled twice in the existing background shader; no particle library, extra animation loop, or per-frame particle simulation is used. The starfield stays still when reduced motion is preferred.
